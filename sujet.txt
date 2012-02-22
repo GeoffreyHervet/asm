@@ -1,0 +1,59 @@
+Mini projet d'assembleur tek II:
+Mini-libc.
+(version 1.0-rc1)
+
+
+	Le but de ce projet est de réaliser une librarie dynamique elf
+	pouvant remplacer (en partie) la librairie standard C que vous
+	utilisez tous les jours.
+
+	Grâce au mini-projet "malloc" vous savez comment les
+	librairies dynamiques et les fonctions de vos librairies
+	peuvent remplacer celles de la libc (weak binding).
+
+	Pour chaque fonction je vérifierai si vous avez compris le
+	code que vous avez produit. Une compréhension "approximative"
+	signifie pour moi que vous avez triché.
+	Il vaut mieux que cela ne marche pas plutôt que cela marche
+	mais que vous ne sachiez pas pourquoi.
+
+	:: Bonus/Malus
+
+
+	Ces quelques idées sont données à titre indicatif.
+
+	- Des fonctions supplémentaires.
+
+	- L'adéquation (parfaite) des résultats avec la description
+	  provenant de la page de man.
+
+	:: Voici ce que doit comprendre votre libc
+
+	strlen.
+	strchr.
+	memset.
+	memcpy.
+	strcmp.
+	memmove.
+
+	strncmp.
+	strcasecmp.
+	rindex.
+
+	read.
+	write.
+
+	strstr.
+	strcspn.
+
+
+	:: Références
+
+
+	ulibc.
+	dietlibc.
+	glibc.
+	Les pseudo-libc présentes dans la plupart des kernels POSIX.
+
+	
+
