@@ -16,10 +16,10 @@ int		main(int ac, char **av)
   printf("tab = %p\n", tab);
   idx = -1;
   while (++idx < 10)
-    printf("tab[%i] = %i\n", idx, tab[idx]);
+    printf("tab[%i] = %#x\n", idx, tab[idx]);
   printf("my_memset(tab, 42, 10) = %p\n", my_memset(tab, 42, 10));
   idx = -1;
   while (++idx < 10)
-    printf("tab[%i] = %i\n", idx, tab[idx]);
+    printf("tab[%i] = %#x\n", idx, tab[idx]);
   return 0;
 }
