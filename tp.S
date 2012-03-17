@@ -47,27 +47,48 @@ section .text
     pop rbp
     ret
 
-  my_setmem:
+    my_setmem:
+      push rbp
+      mov rbp, rsp
+      push rcx
+      mov rcx, -1
+      mov rax, rsi
+      .count:
+        inc rcx
+        CMP rcx, rdx
+        JNZ .fill_value
+        JZ  .get_result
+      .fill_value:
+        mov BYTE [rdi + rcx], al
+        JMP .count
+      .get_result:
+        mov rax,rdi
+        pop rcx
+        mov rsp,rbp
+        pop rbp
+        ret
+    ;; my_setmem:
+    ;;void *memset(void *s, int c, size_t n);
     ;; my_seymem(ADDR, N, V)
     ;; rsi -> taille du tableau
     ;; rdx -> new content
-
-    push rbp        ;; prologue :begin of new stack frame
-    mov rbp, rsp
-
-    xor rax, rax
-
-    __loop:
-      cmp rsi, 0
-      jz __end
-      dec rsi
-      mov [rdi+rsi], rdx
-      ;a=b -> ZF=1
-    __end:
-
-    mov rsp, rbp    ;; epilogue
-    pop rbp
-    ret
+    ;;
+    ;;    push rbp        ;; prologue :begin of new stack frame
+    ;;    mov rbp, rsp
+    ;;
+    ;;   xor rax, rax
+    ;;
+    ;;   __loop:
+    ;;     cmp rsi, 0
+    ;;    jz __end
+    ;;    dec rsi
+    ;;    mov [rdi+rsi], rdx
+    ;;    ;a=b -> ZF=1
+    ;; __end:
+    ;;
+    ;; mov rsp, rbp    ;; epilogue
+    ;; pop rbp
+    ;;ret
 
 
   main:
@@ -84,8 +105,8 @@ section .text
 ;    call printf
 
     mov edi, tab
-    mov esi, 15
-    mov edx, 0x2121
+    mov esi, 1
+    mov edx, 0x30
     call my_setmem
 
     mov rax, 2
@@ -113,5 +134,7 @@ section .rodata
 section .data
   tab db "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", "?", 0
   ;; resb ??
+
+  txt1 db 'Hello World !',0Ah, 0
 
 ;; Segment de data non initialise
