@@ -1,0 +1,3 @@
+#!/bin/sh
+
+gcc -c main.c -g3 && nasm -f elf64 -o tmp.o -g3 my_memset.S && gcc main.o tmp.o
