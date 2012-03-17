@@ -1,13 +1,13 @@
 [BITS 64]
 
-global my_memset
+global memset
 
 section .text
 
 ; void* memset(void *s, int c, size_t n)
 ;		rdi      rsi    rdx
 
-my_memset:
+memset:
   push rbp		; prologue
   mov rbp, rsp
 
