@@ -2,7 +2,7 @@ OK strlen
 OK strchr
 OK memset
 OK memcpy
-   strcmp
+OK strcmp
    memmove
    
    strncmp
