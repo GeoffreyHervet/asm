@@ -28,29 +28,3 @@ memset:
   mov rsp,rbp		; epilogue
   pop rbp
   ret
-
-; [BITS 64]
-; 
-;         global my_memset
-;         section .text
-; 
-; my_memset:
-;                 push rbp
-;                 mov rbp, rsp
-;                 push rcx
-;                 mov rcx, -1
-;                 mov rax, rsi
-; .count:
-;                 inc rcx
-;                 CMP rcx, rdx
-;                 JNZ .fill_value
-;                 JZ  .get_result
-; .fill_value:
-;                 mov BYTE [rdi + rcx], al
-;                 JMP .count
-; .get_result:
-;                 mov rax,rdi
-;                 pop rcx
-;                 mov rsp,rbp
-;                 pop rbp
-;                 ret

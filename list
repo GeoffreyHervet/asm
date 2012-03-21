@@ -1,0 +1,14 @@
+OK strlen
+   strchr
+OK memset
+   memcpy
+   strcmp
+   memmove
+   
+   strncmp
+   strcasecmp
+   rindex
+   
+   strstr
+   strpbrk
+   strcspn
