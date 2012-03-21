@@ -12,15 +12,20 @@ my_strchr:
   mov rbp, rsp
 
   xor rdx, rdx		; compteur
-.while:
-  cmp [rdi+rdx], rsi	; while s[rdx] != c
-  je .endwhile
-  ;cmp BYTE [rdi+rax], 'o'
+  and rsi, 0xFF
 
-  inc rax
-  jmp .while
+_while:
+  mov rax, [rdi + rdx]
+  and rax, 0xFF		; Pour comparer juste le char
 
-.endwhile:
+  cmp rax, rsi		; while s[rdx] != c
+  je _endwhile
+  ;cmp BYTE [rdi+rdx], 'o'
+
+  inc rdx
+  jmp _while
+
+_endwhile:
   mov rax, rdi
   add rax, rdx		; return s + rax
 
