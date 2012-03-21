@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define STRCPY 1
+#define STRCMP 1
+#define STRCPY 0
 #define STRCHR 0
 #define STRLEN 0
 #define MEMSET 0
@@ -10,11 +11,17 @@
 size_t my_strlen(const char *s);
 char *my_strchr(const char *s, int c);
 char *my_strcpy(char *dest, const char *src);
+int my_strcmp(const char *s1, const char *s2);
 
 #define PTR_DEL(p1, p2) ((unsigned long)(p1) - (unsigned long)(p2))
 
 int		main(int ac, char **av)
 {
+#if STRCMP
+  printf("MINE %d - %d LIBC\n", my_strcmp("aaaaaaaaaa", "aaaaaaaaaa"), strcmp("aaaaaaaaaa", "aaaaaaaaaa"));
+  printf("MINE %d - %d LIBC\n", my_strcmp("aaaaaaaZaaa", "aaaaaaaaaa"), strcmp("aaaaaaaZaaa", "aaaaaaaaaa"));
+  printf("MINE %d - %d LIBC\n", my_strcmp("aaaaaaaaaa", "aaaaaaaZaaa"), strcmp("aaaaaaaaaa", "aaaaaaaZaaa"));
+#endif
 #if STRCPY
   printf("-----------[ STRCPY ]-----------\n");
   const char	*str1 = "qwertyuioopasdfghjklzxcvbnm";

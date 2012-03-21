@@ -20,14 +20,21 @@ _while:
 
   cmp rax, rsi		; while s[rdx] != c
   je _endwhile
+  cmp rax, 0
+  je _notfound
 
   inc rdx
   jmp _while
+
+_notfound:
+  mov rax, 0
+  jmp _epilog
 
 _endwhile:
   mov rax, rdi
   add rax, rdx		; return s + rax
 
+_epilog:
   mov rsp,rbp		; epilogue
   pop rbp
   ret

@@ -1,0 +1,530 @@
+	ASM - castet.j@gmail.com / castet_j@epitech.eu - 2012
+===============================================================================
+Derniere mise a jour le 17/04/2009
+===============================================================================
+
+Le but de ce document est d'essayer de completer un peu les cours existants sur
+l'asm.  L'asm est un langage qui n'est pas portable : ce qui est valable ici
+est valable sur l'enselbme du PIE (FreeBSD). Neanmoins, sous un autre systeme,
+il se peut que les exemples donnes ne fonctionnent pas (c'est par exemple le
+cas de la partie Appel Systeme, qui differe suivant que l'on soit par exemple
+sur un BSD ou sur un linux)
+
+===============================================================================
+I/ 	Les differentes zones memoires
+II/	Les registres
+III/	La syntaxe intel
+IV/	Le code minimal
+V/	Quelques instructions
+VI/	Appel a une fonction en respectant la C calling convention
+VII/	Le prologue et l'epilogue
+VIII/	Appel systeme
+IX/	Cas pratique : petit code explique pas a pas
+X/	Quant doit-on restaurer les registres ?
+
+===============================================================================
+
+I/ 	Les differentes zones memoires
+...............................................................................
+
+Il y a quatre zones memoires qui nous interessent :
+* le heap (le tas) : c'est la zone de memoire dynamique. Lors d'un appel a malloc, le pointeur retourne pointe vers le heap. Le haut du heap est represente par le brk (modifiable par la fonction C sbrk()). Si on veut augmenter la taille du heap, on doit augmenter le brk : c'est donc une zone qui s'agrandit vers les adresses hautes ;
+
+* la stack (la pile) : c'est la zone des variables locales. Lorsqu'on declare un int dans une fonction, cette valeur sera placee sur la stack. Une fois la fonction terminee, cette variable sera supprimee. Le pointeur qui permet de representer la stack s'appelle l'esp (extended stack pointer). La stack commence dans les adresses hautes, et s'agrandit vers les adresses basses. Pour augmenter la taille de la stack, il faut donc diminuer l'esp ;
+
+* les registres : ce sont des zones memoires situees directement sur le processeur. Ces registres sont tres rapides d'acces (de l'ordre de 1 a 3 nanosecondes), mais ils se trouvent en quantite limite ;
+
+* le segment de code : c'est l'endroit ou se trouve le binaire en memoire. Cette zone ne permet pas de stocker des donnees, mais permet de passer d'une instruction a une autre. Le registre eip (extended instruction pointer) pointe sur la prochaine instruction a executer dans le binaire. Ainsi, en jouant avec l'eip avec les instructions qui le permettent, on va pouvoir sauter vers telle ou telle partie du code.
+
+
+Pour donner un ordre de grandeur du temps d'acces aux differentes zones memoires, on a :
+- registres : de l'ordre de quelques nanosecondes (1 ns = 1 * 10^-9)
+- RAM : de l'ordre de plusieurs dizaines de nanosecondes (60 ns = 60 * 10^-9)
+- disque dur : de l'ordre de la milliseconde (1ms = 1 * 10^-3)
+
+// Un schema qui detaille un peu mieux les differentes zones memoires : http://www.cs.rit.edu/~hpb/Lectures/SIA/OS1/UsedGif/5_heap_and_stack.gif
+// Sur ce schema, le segment TEXT represente l'endroit ou se trouve le binaire en memoire
+
+
+II/	Les registres
+...............................................................................
+
+La taille des registres depend du processeur : ils font soit 32 bits, soit 64 bits. On prendra dans ce document des registres de 32 bits.
+
+Il existe plusieurs types de registres, qui ont chacun leur utilite.
+
+a) Les registres principaux
+
+* EAX, EBX, ECX, EDX
+Ces registres permettent de stocker des donnees. Ce sont quatre registres de 32 bits. Ces registres sont neamoins decomposables en sous-registres de 16 bits et 8 bits.
+Par exemple, on peut mettre dans EAX une valeur de 32 bits. Dans le registre AX, qui est la partie droite de EAX, on peut mettre un nombre de 16 bits. Et si on veut ne stocker qu'un octet, on peut utiliser soit AH, soit AL qui sont les parties gauche et droite de AX.
+
+|_______________EAX______________|
+|________________|______AX_______|
+|________________|__AH___|__AL___|
+
+Il en est de meme pour les trois autres registres. On trouve donc :
+* pour EAX, AX, AH et AL
+* pour EBX, BX, BH et BL
+* pour ECX, CX, CH et CL
+* pour EDX, DX, DH et DL
+
+On peut stocker n'importe quelle valeur dans les registres generaux. Neanmoins, intel recommande t'uiliser chaque registre pour une utilisation particuliere :
+EAX : Registre Accumulateur
+EBX : Registre auxiliaire de Base
+ECX : Registre Compteur
+EDX : Registre de Donnees
+
+b) Les registres EDI et ESI
+
+Ces deux registres se comportent comme les quatre registres generaux. Ce sont deux registres 32 bits, decomposables en registres 16 bits. Neanmoins, on ne peut pas les decouper en registres 8 bits.
+On a donc EDI et ESI en registres 32 bits, et DI et SI en registres 16 bits.
+
+Ces registres sont cense etre utilises dans la manipulation de chaines : dans le cas d'un memcpy par exemple, on se servira de EDI pour la chaine de destination, et de ESI pour la chaine de source.
+
+c) Les registres de stack
+
+Il est necessaire de toujours savoir ou se situe le debut et la fin de notre stack. Le debut, c'est a dire le haut de notre stack, est representee par le registre EBP (pour Extended Base Pointer). Ce registre est a initialise "a la main" : on doit indiquer a chaque fois ou se situe le haut de notre stack. Le bas de la stack quant a lui est represente par le registre ESP (pour Extended Stack Pointer). A chaque fois qu'on va ajouter ou supprimer un element de notre stack, ce registre va etre mis a jour : il n'est donc que rarement necessaire de le modifier directement.
+
+d) Le registre d'instruction
+
+Le registre EIP (pour Extended Instruction Pointer) permet de stocker l'adresse de la prochaine instruction a executer. Ce registre ne peut pas etre modifie directement (on ne peut pas faire un mov eip, 5 par exemple pour mettre la valeur 5 dans EIP). Sa valeur est automatiquement mis a jour : a chaque fois qu'on execute une nouvelle instruction, le registre pointe automatiquement vers la suivante.
+Afin de le modifier, il existe plusieurs instructions : jmp, par exemple, va permettre de sauter a une instruction avant ou apres dans le code.
+
+e) Le registre FLAG
+
+Le registre flag n'est pas modifiable directement. Il s'agit d'un registre 32 bits dans lequel chaque bit correspond a un flag : CF (Carry Flag, flag de retenue), ZF (Zero Flag), DF (Direction Flag) et bien d'autres. Chaque flag etant represente par un bit, il a deux etats possible : "on" ou "off".
+Certaines instructions intialisent ces flags, d'autres s'en servent. Par exemple :
+_start:
+mov eax, 2	; on met une valeur arbitraire dans eax, pour tester
+cmp eax, 0  	; met le ZF a 1 si eax == 0
+je label	; fera un jump a label si le ZF est a 1, sinon l'instruction sera ignoree : on a donc un jump conditionnel
+jmp start	; si on arrive a cette instruction, c'est que le ZF est a 0 car on a pas fait de jump vers label:
+label:
+	exit
+
+Ici on a donc :
+- si eax = 0 au debut, une boucle infinie, sinon un programme qui se termine normalement
+
+f) Les autres registres
+
+Il existe d'autres registres. Pour commencer l'assembleur, il n'est pas necessaire de les connaitre. Donc man google pour regarder le reste (registres du MMU par exemple qui permettent de stocker et de faire du calcul sur les nombres flottants, registres de segments...)
+
+
+III/	La syntaxe intel
+...............................................................................
+
+Il existe (a ma connaissance) deux syntaxes pour faire de l'asm : Intel (joli, elegant, cool) et AT&T (degueulasse, horrible, illisible).
+Dans la syntaxe Intel, une instruction s'ecrit comme suit :
+
+instruction destination source
+
+Ainsi pour mettre la valeur "4" dans le registre EAX, on fera :
+mov eax, 4
+
+
+IV/	Le code minimal
+...............................................................................
+
+Celui donne en exemple sur l'intra est bien fait, je vais donc l'expliquer brievement :
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; Template for asm tps made by syl <gallon_s@epitech.net>
+; As long as you retain this notice you can do wathever you want with this stuff. If we meet some day, and you think
+; this stuff is worth it, you can buy me a beer in return.
+
+
+global _start					; permet de mettre le symbol _start en global, necessaire pour pouvoir acceder aux elements depuis d'autres fichiers
+extern printf					; signale qu'on va utiliser printf, qui vient d'autre part
+global __progname				; de meme que global _start
+global environ					; de meme que global _start
+
+
+
+section .text					; section de texte : c'est ici que le code va etre ecrit
+_start:						; entree du programme : similaire a la fonction main()
+	nop					; no operation : ne fait rien
+
+
+section .data					; section des variables constantes
+	HelloMsg db "helloworld bite", 10, 0	; declaration d'une variable HelloMsg. db = declare byte : chaque caractere fait 1 octet. La chaine se termine par un \n (, 10) et par 0 (, 0)
+	__progname db 0
+
+
+section .bss					; variables dont l'espace est alloue, mais qui ne sont pas initialisees
+	environ
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+// un peu plus d'infos sur la declaration des variables : http://www.iprezo.org/index.php?page=don
+
+Ce code ne fait absolument rien. Il compile, mais segfault : la seule instruction executee, est nop. Les instructions suivantes executees sont celles qui se trouvent en memoire. On ne met jamais fin au programme.
+
+Pour compiler ce programme, on utilise nasm, et ld pour le linkage :
+
+nasm -f elf 42.s -o 42.o	# pour compiler le fichier 42.s
+ld 42.o -lc lib.a -o 42		# pour linker avec la libc (-lc), avec une autre lib (lib) et sortir un executable nomme 42
+
+Une version Makefile qui permet de linker des .s avec des .c :
+
+###############################################################################
+NAME    =       a.out
+
+CCasm   =       nasm
+OBJasm  =       $(SRCasm:.s=.o)
+SRCasm  =       my_strlen.s     \
+                my_putstr.s     \
+
+CCc     =       gcc
+OBJc    =       $(SRCc:.c=.o)
+SRCc    =       main.c		\
+
+all     :       $(NAME)
+
+$(NAME) :       $(OBJc) $(OBJasm)
+                gcc $(OBJc) $(OBJasm) -o $(NAME)
+
+clean   :
+                rm -f $(OBJc)
+                rm -f $(OBJasm)
+
+fclean  :       clean
+                rm -f $(NAME)
+
+re      :       fclean all
+
+.s.o    :
+                $(CCasm) -f elf $< -o $@
+###############################################################################
+
+
+V/	Quelques instructions
+...............................................................................
+
+Quelques instructions utiles, avec exemples et ce qui va avec.
+
+* mov : permet de mettre une valeur source dans une zone destination
+mov eax, 4		; met 4 dans
+mov edx, HelloMsg	; met le pointeur sur la chaine Hellomsg de la section .data dans edx
+mov eax, [edx]		; met la valeur pointee par edx (donc le premier caractere de la chaine) dans eax
+
+* jmp : permet de sauter a une instruction
+_start:
+	jmp _start	; saute a _start, boucle infinie
+
+* cmp : permet de comparer deux elements
+cmp eax, 4	; compare eax a 4, et intialises certains flags (voir le man de cmp pour savoir exactement lesquels) suivant que la comparaison renvoie true ou false
+
+* je, jg, jne : permet de faire un jump conditionnel. Si tel ou tel flag est a on, le jump va se faire, sinon non. Pour savoir lesquels, google + jump conditionnel asm
+
+* inc, dec : incrementer ou decrementer une valeur
+inc eax
+dec eax
+
+* xor, and, or : operations binaires
+xor eax, eax	; met eax a 0 : plus rapide qu'un mov eax, 0 (xor etant une instruction "basse" du processeur")
+
+* push : permet de mettre une valeur sur la stack, ce qui decremente automatiquement l'esp
+push 4		; en bas de la stack, on a 4 octets utilises pour stocker la valeur 4
+push eax	; push la valeur contenue dans eax
+push [eax]	; push la valeur pointee par eax
+
+* pop : permet de recuperer la valeur la plus en bas de la stack (celle juste avant ce qui est pointe par l'esp), et la met dans un endroit memoire
+pop eax			; recupere la derniere valeur et la met dans eax
+pop dword [ebp - 8]	; permet de mettre la valeur situee sur la stack a l'adresse [ebp - 8]. Cette valeur aura une taille equivalente a dword, c'est a dire 4 octets.
+
+
+VI/	Appel a une fonction en respectant la C calling convention
+...............................................................................
+
+Pour appeler une fonction qui soit compatible avec le C, il faut respecter quelques regles simples :
+* les parametres doivent etre donnes sur la stack, dans l'ordre inverse dans lequel ils seront receptionnes
+exemple, on fais un printf("%i%s%c, 12, "coucou", 'a'); l'equivalent en asm sera :
+push 'a'
+push "coucou"
+push 12
+push "%i%s%c"
+call printf
+/!\ attention : push 'a' push "coucou" et push "%i%s%c" ne fonctionne pas, c'etait juste pour l'exemple. Il faut allouer ces chaines dans le section .data pour que ca fonctionne ! (comme le Hellomsg plus haut)
+
+* lorsqu'on sort de la fonction appelee, on doit rendre une stack "propre" :
+dans une fonction, on aura souvent besoin de faire des push, des pop, ... bref de changer l'etat de la stack. Lorsqu'on sort de notre fonction (via l'instruction ret), il faut rendre une stack identique a celle qui etait la avant l'appel
+
+* la valeur de retour d'une fonction doit se situer dans eax :
+si on souhaite retourner une valeur (un pointeur, un nombre, peu importe), la valeur est toujours situee dans eax
+
+
+VII/	Le prologue et l'epilogue
+...............................................................................
+
+
+Pour respecter la C calling convention, on doit rendre une stack "propre" a la fonction appelante. Comment faire ?
+Par la creation du prologue et de l'epilogue. A quoi ca correspond ? A quelques instructions.
+Une fonction doit toujours (pas toujours, comme on pourra le voir plus tard) commencer par :
+
+call mafonction
+mafonction:
+	push ebp
+	mov ebp, esp	; ces deux appels constituent le prologue
+	;
+	; le code de la fonction
+	;
+	leave		; ces deux la constituent l'epilogue
+	ret
+
+Ce qu'il faut savoir :
+- ebp pointe sur le haut de la stack
+- esp sur le bas de la stack
+
+Explication pas a pas de ce que fait le prologue et l'epilogue :
+0) call mafonction : equivaut a ces deux appels : push eip et jmp [adresse de l'instruction]. Ainsi, on trouve sur la stack l'eip lors de l'entree dans la nouvelle fonction
+1) push ebp : on stocke sur la stack l'adresse dans laquelle se trouve le haut de la stack
+2) mov ebp, esp : on met dans ebp, le registre qui represente le haut de la stack, la valeur de l'esp. Ainsi, a ce niveau, ebp == esp : notre fonction va "croire" qu'elle dispose d'une stack vide, donc le haut est represente par ebp
+3) c'est le code de notre fonction. Dedans on pourra trouver des push, des pop qui vont incrementer et decrementer notre esp.
+4) leave : leave correspond a deux instructions : mov esp, ebp et push ebp. Ainsi, on "dit" que le bas de la stack (esp) correspond au haut (ebp) : on revient donc dans la situation du 2) dans laquelle on dispose d'une stack vide. Ensuite, on fait un pop ebp : la valeur sauvegardee dans le 1), l'ebp, est remise a sa valeur initiale : ebp pointe desormais vers le haut de la fonction appelante
+5) ret : equivaut a un pop eip (qui ne peut etre ecrit directement). En effet, lors de l'appel du call en 0, l'eip (adresse de la prochaine instruction a executer) est mis sur la stack. En restaurant cette valeur, on pointe desormais vers l'instruction suivante, dans le code, qu'il faudra executer.
+
+
+Voici a quoi ressemble la stack lors de l'appel d'une fonction.
+| represente 4 octets
+<<< represente la valeur pointee soit par l'esp, soit par l'ebp
+
+<<< ebp
+| 4
+| 3
+| 2
+| 1	; donnees arbitraires : on dira que c'est ce qui se trouve deja dans la stack dans la fonction appelante
+<<< esp
+
+0) call mafonction
+<<< ebp
+| 4
+| 3
+| 2
+| 1
+| eip
+<<< esp
+
+1) push ebp
+<<< ebp
+| 4
+| 3
+| 2
+| 1
+| eip
+| ebp
+<<< esp
+
+2) mov ebp esp
+| 4
+| 3
+| 2
+| 1
+| eip
+| ebp
+<<< ebp, esp
+
+3) code de la fonction (on va dire que dans notre fonction on fait un push 2 et un push 3)
+| 4
+| 3
+| 2
+| 1
+| eip
+| ebp
+<<< ebp
+| 2
+| 3
+<<< esp
+
+4) leave (== mov esp, ebp && pop ebp)
+<<< ebp
+| 4
+| 3
+| 2
+| 1
+| eip
+<<< esp
+
+5) ret (== pop eip, jmp instruction suivante)
+<<< ebp
+| 4
+| 3
+| 2
+| 1
+<<< esp
+
+On trouve donc a la fin de la fonction une stack similaire a la fonction appelante.
+
+
+VIII/	Appel systeme
+...............................................................................
+
+Pour faire un appel systeme, on utilise les interruptions (man google), et plus particulierement l'interruption 0x80.
+
+La commande int permet de faire une interruption : int 0x80
+
+A chaque syscall correspond un nombre. La liste de correspondance syscall/nombre se trouve dans /usr/include/sys/syscall.h
+1 correspond a exit, 2 a fork...
+
+Pour effectuer un syscall, il faut faire les choses suivantes :
+1) mettre la valeur du syscall dans eax
+2) comme pour une fonction, push les parametres dans l'ordre inverse
+3) pour faire appel a une fonction, on utilise call qui fait un push eip. En entrant dans la fonction, on fait un push ebp, puis un mov ebp, esp (prologue). Le premier argument se trouve donc a l'adresse [ebp + 8]. L'interruption (int) ne fait pas le push eip, comme le call. Il faut "simuler" ce push en mettant sur la stack une valeur arbitraire, qui sera ignoree.
+4) faire l'interruption
+
+Par exemple, pour faire le syscall SYS_dup2 (90), on va faire :
+mov eax, 90	; numero du syscall
+push 5		; dernier parametre
+push 3		; premier parametre
+push 42		; valeur arbitraire
+int 0x80	; appel du syscall
+
+Comme pour une fonction, la valeur de retour du syscall est mise dans le registre eax.
+
+
+IX/	Cas pratique : petit code explique pas a pas
+...............................................................................
+
+Le but ici va etre de decrire un programme simple, et l'evolution de la stack au fur et a mesure que les commandes seront executees.
+
+Version asm :
+
+===============================================
+01 extern printf
+02 extern exit
+03
+04 section .text
+05 	_start:
+06 		push HelloFromMain
+07 		push PrintfString
+10 		call printf
+11		push HelloFromDisplay
+12		call printf
+13		push HelloFromDisplay
+		push 0
+14		call exit
+15
+16	display:	; affiche une string passee en parametre
+17		push ebp
+18		mov ebp, esp
+19		mov eax, [ebp + 8]
+20		push eax
+21		push PrintfString
+22		call printf
+23		leave
+24		ret
+25
+26 section .data
+27	PrintfString db "%s", 0
+28	HelloFromMain db "Hello from main", 0
+29	HelloFromDisplay db "Hello from display", 0
+==============================================
+Version explication :
+
+01/02 : on va se servir de printf et d'exit dans notre programme, on declare que les symboles sont externes et resolus lors du linkage
+05 : main()
+06-12 : on affiche un message depuis main, on push les arguments dans le sens inverse et on appelle la fonction
+
+Maintenant on va detailler un peu plus en affichant notre stack etape par etape. Sur la stack, lorsqu'est represente une chaine de caracteres, il est evident qu'il s'agit en fait d'un pointeur sur 4 octets. Lorsqu'on met [eip] sur la stack, c'est la valeur de ce registre lorsqu'il a ete push.
+
+11 : push HelloFromDisplay
+>> ebp			(c'est l'entree du programme : on ne sait pas ou est l'ebp, on sait juste qu'il pointe plus haut dans la stack)
+	|
+	...
+	| "Hello from display"
+>> esp
+
+12 : call printf	(rappel : call equivalent a push eip + jmp vers la fonction)
+>> ebp
+	|
+	...
+	| "Hello from display"
+	| [eip]
+>> esp
+// note : eip pointe desormais sur la fonction display
+
+17 : push ebp
+>> ebp
+	|
+	...
+	| "Hello from display"
+	| [eip]
+	| [ebp]
+>> esp
+
+18 : mov ebp, esp
+	|
+	...
+	| "Hello from display"
+	| [eip]
+	| [ebp]
+>> ebp, esp
+
+19 : mov eax, [ebp + 8]
+	|
+	...
+	| "Hello from display"	; = [ebp + 8]
+	| [eip]
+	| [ebp]
+// note : si on incremente la valeur du pointeur ebp de 8, on pointe vers "Hello from display". eax contient donc un pointeur vers notre chaine de caractere. Si on avait voulu recupere un deuxieme argument, il aurait fallu le chercher a [ebp + 12], puis [ebp + 16]...
+
+20, 21 : push eax et push PrintfString
+	|
+	...
+	| "Hello from display"
+	| [eip]
+	| [ebp]
+>> ebp
+	| "Hello from display"
+	| "%s"
+>> esp
+
+22 : call printf
+// affiche notre chaine de caracteres
+
+23 : leave	(rappel : leave equivaut a mov esp, ebp et pop ebp)
+>> ebp
+	|
+	...
+	| "Hello from display"
+	| [eip]
+>> esp
+// a ce moment la, toutes les variables de notre fonction ne sont plus accessible
+
+24 : ret	(rappel : ret equivaut a un pop eip, et jmp vers l'adresse)
+>> ebp
+	|
+	...
+	| "Hello from display"
+>> esp
+
+14 : push 0 et call exit
+// Quitte notre programme. Lorsqu'on sort de notre fonction display, on a aucune trace du fait que l'on y soit rentre : la stack rendue a la sortie de notre fonction est similaire a celle donnee a l'entree.
+
+
+X/	VRAC
+...............................................................................
+
+Lorsqu'on fait du C avec de l'asm, on vient rapidement a se poser une question
+: quels registres doivent etre sauvegardes, et quand ?
+
+Si on est dans une fonction, par exemple, qui utilise le registre esi, et qu'on
+fait appel a une autre fonction qui va modifier ce registre, on risque de
+rencontrer de serieux problemes.
+
+Un element de reponse ici :
+http://ensiwiki.ensimag.fr/index.php/Erreurs_fr%C3%A9quentes_en_assembleur
+
+"Vous avez probablement fait un appel de fonction, qui a modifié les valeurs
+de ces registres. Une fonction a le droit de modifier les registres dits «
+scratch », i.e. les registres autres que %ebp, %ebx, %edi, %esi, et %esp. Si
+on veut conserver leurs valeurs, il faut les sauvegarder"
+
+En gros :
+- Vous etes dans une fonction, et vous utilisez un registre autre que ceux
+  listes ci-dessus. Vous faites un appel de fonction et au retour de cette
+  fonction, vous souhaiteriez pouvoir reutiliser la valeur de ce registre :
+  vous devez sauvegarder dans la fonction appelante
+- Vous etes dans une fonction et vous modifiez un des registres ci-dessus :
+  vous devez restaurer sa valeur avant de retourner a la fonction appelante
+  (meme la fonction _start)
