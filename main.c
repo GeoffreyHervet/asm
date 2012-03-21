@@ -2,17 +2,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MEMSET 0
+#define STRCHR 1
 #define STRLEN 0
+#define MEMSET 0
 
 size_t my_strlen(const char *s);
+char *my_strchr(const char *s, int c);
+
+#define PTR_DEL(p1, p2) ((unsigned long)(p1) - (unsigned long)(p2))
 
 int		main(int ac, char **av)
 {
+#if STRCHR
+  printf("-----------[ STRCHR ]-----------\n");
+  const char	*str = "qwertyuioopasdfghjklzxcvbnm";
+  printf("str           -> %p\n", str);
+  printf("strchr(str)    = %p, offset = %li\n", strchr(str, 'o'), PTR_DEL(strchr(str, 'o'), str));
+  printf("my_strchr(str) = %p, offset = %li\n", my_strchr(str, 'o'), PTR_DEL(my_strchr(str, 'o'), str));
+#endif
 #if STRLEN
   printf("-----------[ STRLEN ]-----------\n");
   const char	*str = "qwrtyuiorjehgerdsfjcsagfhgfdghgfdghtp";
-  printf("strlen(str) = %d\n", strlen(str));
+  printf("strlen(str)    = %d\n", strlen(str));
   void *p = (void *)my_strlen(str);
   printf("my_strlen(str) = %p - %d\n", p, (size_t)p);
 #endif

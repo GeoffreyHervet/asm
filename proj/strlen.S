@@ -1,13 +1,13 @@
 [BITS 64]
 
-global my_strlen
+global strlen
 
 section .text
 
 ; size_t strlen(const char *s);
 ; rdi  		rdi
 
-my_strlen:
+strlen:
   push rbp		; prologue
   mov rbp, rsp
 
