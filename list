@@ -1,7 +1,7 @@
 OK strlen
-   strchr
+OK strchr
 OK memset
-   memcpy
+OK memcpy
    strcmp
    memmove
    

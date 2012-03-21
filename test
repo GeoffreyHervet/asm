@@ -1,3 +1,3 @@
 #!/bin/sh
 
-gcc -c main.c -g3 && nasm -f elf64 -o tmp.o -g3 proj/strchr.S && gcc main.o tmp.o && ./a.out && rm -f tmp.o main.o
+gcc -c main.c -g3 && nasm -f elf64 -o tmp.o -g3 proj/strcpy.S && gcc main.o tmp.o && ./a.out && rm -f tmp.o main.o

@@ -1,13 +1,13 @@
 [BITS 64]
 
-global my_strchr
+global strchr
 
 section .text
 
-; char *my_strchr(const char *s, int c);
-; rax             rdi  	          rsi
+; char *strchr(const char *s, int c);
+; rax             rdi          rsi
 
-my_strchr:
+strchr:
   push rbp		; prologue
   mov rbp, rsp
 
@@ -20,7 +20,6 @@ _while:
 
   cmp rax, rsi		; while s[rdx] != c
   je _endwhile
-  ;cmp BYTE [rdi+rdx], 'o'
 
   inc rdx
   jmp _while

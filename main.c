@@ -2,17 +2,34 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define STRCHR 1
+#define STRCPY 1
+#define STRCHR 0
 #define STRLEN 0
 #define MEMSET 0
 
 size_t my_strlen(const char *s);
 char *my_strchr(const char *s, int c);
+char *my_strcpy(char *dest, const char *src);
 
 #define PTR_DEL(p1, p2) ((unsigned long)(p1) - (unsigned long)(p2))
 
 int		main(int ac, char **av)
 {
+#if STRCPY
+  printf("-----------[ STRCPY ]-----------\n");
+  const char	*str1 = "qwertyuioopasdfghjklzxcvbnm";
+  char receive1[1024];
+
+  printf("my_strcpy(%s) = %s, receive1 = %s\n", str1, my_strcpy(receive1, str1), receive1);
+  printf("   strcpy(%s) = %s, receive1 = %s\n", str1, my_strcpy(receive1, str1), receive1);
+  receive1[4] = 0;
+  receive1[5] = 0;
+  receive1[6] = 0;
+  receive1[7] = 0;
+  receive1[8] = 0;
+  printf("my_strcpy(%s) = %s, receive1 = %s\n", str1, my_strcpy(receive1, str1), receive1);
+  printf("   strcpy(%s) = %s, receive1 = %s\n", str1, my_strcpy(receive1, str1), receive1);
+#endif
 #if STRCHR
   printf("-----------[ STRCHR ]-----------\n");
   const char	*str = "qwertyuioopasdfghjklzxcvbnm";
@@ -22,10 +39,10 @@ int		main(int ac, char **av)
 #endif
 #if STRLEN
   printf("-----------[ STRLEN ]-----------\n");
-  const char	*str = "qwrtyuiorjehgerdsfjcsagfhgfdghgfdghtp";
-  printf("strlen(str)    = %d\n", strlen(str));
-  void *p = (void *)my_strlen(str);
-  printf("my_strlen(str) = %p - %d\n", p, (size_t)p);
+  const char	*str2 = "qwrtyuiorjehgerdsfjcsagfhgfdghgfdghtp";
+  printf("str2len(str)    = %d\n", strlen(str));
+  void *p = (void *)my_str2len(str);
+  printf("my_str2len(str) = %p - %d\n", p, (size_t)p);
 #endif
 #if MEMSET
   printf("-----------[ MEMSET ]-----------\n");
