@@ -2,17 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MEMMOV 1
-#define STRCMP 0
-#define STRCPY 0
-#define STRCHR 0
-#define STRLEN 0
-#define MEMSET 0
+#define STRNCMP 1
+#define MEMMOV  0
+#define STRCMP  0
+#define STRCPY  0
+#define STRCHR  0
+#define STRLEN  0
+#define MEMSET  0
 
 size_t my_strlen(const char *s);
 char *my_strchr(const char *s, int c);
 char *my_strcpy(char *dest, const char *src);
 int my_strcmp(const char *s1, const char *s2);
+int my_strncmp(const char *s1, const char *s2, size_t n);
 void *my_memmove(void *dest, const void *src, size_t n);
 typedef struct {
   char s[43];
@@ -26,6 +28,12 @@ typedef struct {
 
 int		main(int ac, char **av)
 {
+#if STRNCMP
+  printf("%i, %i\n", strncmp("qwertyuio", "qwertyAZER", 4), my_strncmp("qwertyuio", "qwertyAZER", 4));
+  printf("%i, %i\n", strncmp("qwertyuio", "qwertyAZER", 9), my_strncmp("qwertyuio", "qwertyAZER", 9));
+  printf("%i, %i\n", strncmp("qwertyAZER", "qwertyuio", 4), my_strncmp("qwertyAZER", "qwertyuio", 4));
+  printf("%i, %i\n", strncmp("qwertyAZER", "qwertyuio", 9), my_strncmp("qwertyAZER", "qwertyuio", 9));
+#endif
 #if MEMMOV
   t_test memmove_test;
   t_test test;

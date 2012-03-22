@@ -3,9 +3,9 @@ OK strchr
 OK memset
 OK memcpy
 OK strcmp
-   memmove
+OK memmove
    
-   strncmp
+OK strncmp
    strcasecmp
    rindex
    
