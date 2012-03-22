@@ -10,6 +10,7 @@ section .text
 strcpy:
   push rbp		; prologue
   mov rbp, rsp
+  push rcx
 
   mov rdi, rax		; valeur de retour
   xor rcx, rcx		; Compteur
@@ -26,6 +27,7 @@ _while:
 
 _endwhile:
 
+  pop rcx
   mov rsp,rbp		; epilogue
   pop rbp
   ret

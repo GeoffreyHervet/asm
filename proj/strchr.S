@@ -10,6 +10,7 @@ section .text
 strchr:
   push rbp		; prologue
   mov rbp, rsp
+  push rdx
 
   xor rdx, rdx		; compteur
   and rsi, 0xFF
@@ -37,5 +38,6 @@ _endwhile:
 _epilog:
   mov rsp,rbp		; epilogue
 
+  pop rdx
   pop rbp
   ret

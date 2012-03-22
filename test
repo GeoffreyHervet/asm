@@ -1,3 +1,3 @@
 #!/bin/sh
 
-gcc -c main.c -g3 && nasm -f elf64 -o tmp.o -g3 proj/strcmp.S && gcc main.o tmp.o && ./a.out && rm -f tmp.o main.o
+clang -c main.c -g3 && nasm -f elf64 -o tmp.o -g3 proj/memmove.S && gcc main.o tmp.o && ./a.out && rm -f tmp.o main.o

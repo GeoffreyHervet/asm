@@ -10,6 +10,9 @@ section .text
 strcmp:
   push rbp		; prologue
   mov rbp, rsp
+  push rdx
+  push r8
+  push r9
 
   xor rdx, rdx
 _while:
@@ -42,6 +45,9 @@ _more:
   jmp _end
 
 _end:
+  pop r9
+  pop r8
+  pop rdx
   mov rsp,rbp		; epilogue
   pop rbp
   ret

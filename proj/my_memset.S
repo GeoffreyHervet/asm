@@ -10,6 +10,7 @@ section .text
 my_memset:
   push rbp		; prologue
   mov rbp, rsp
+  push rcx
 
   imul rdx, 4
   xor rcx, rcx		; compteur
@@ -25,6 +26,7 @@ my_memset:
 .endwhile:
   mov rax, rdi		; valeur de retour
 
+  pop rcx
   mov rsp,rbp		; epilogue
   pop rbp
   ret

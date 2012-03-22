@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define STRCMP 1
+#define MEMMOV 1
+#define STRCMP 0
 #define STRCPY 0
 #define STRCHR 0
 #define STRLEN 0
@@ -12,11 +13,45 @@ size_t my_strlen(const char *s);
 char *my_strchr(const char *s, int c);
 char *my_strcpy(char *dest, const char *src);
 int my_strcmp(const char *s1, const char *s2);
+void *my_memmove(void *dest, const void *src, size_t n);
+typedef struct {
+  char s[42];
+  int i;
+  float tutu;
+  void *p;
+  size_t coudra_t;
+} t_test;
 
 #define PTR_DEL(p1, p2) ((unsigned long)(p1) - (unsigned long)(p2))
 
 int		main(int ac, char **av)
 {
+#if MEMMOV
+  t_test memmove_test;
+  t_test test;
+  int i = -1;
+  strcpy(&memmove_test.s[0], "QQWETRYTUIYUIOPLKGHdfsacxxac");
+  printf("[%s]\n", memmove_test.s);
+  memmove_test.i = 42;
+  memmove_test.tutu = 1234.4321;
+  memmove_test.p = NULL;
+  memmove_test.coudra_t = 0xFACEB00C;
+  printf("[%s]\n", memmove_test.s);
+  my_memmove(&test, &memmove_test, sizeof(memmove_test));
+  printf("[%s]\n", memmove_test.s);
+  printf("memmove : %i %i %i %i %i\n", !strcmp(memmove_test.s, test.s),
+      memmove_test.i == test.i,
+      memmove_test.tutu == test.tutu,
+      memmove_test.p == test.p,
+      memmove_test.coudra_t == test.coudra_t);
+  printf("[%s]\n", memmove_test.s);
+  printf("      %s\nNEW-> %s\n", memmove_test.s, test.s); printf("------------------\n");
+  printf("      %i\nNEW-> %i\n", memmove_test.i, test.i); printf("------------------\n");
+  printf("      %f\nNEW-> %f\n", memmove_test.tutu, test.tutu); printf("------------------\n");
+  printf("      %p\nNEW-> %p\n", memmove_test.p, test.p); printf("------------------\n");
+  printf("      %li\nNEW-> %li\n", memmove_test.coudra_t, test.coudra_t); printf("------------------\n");
+#endif
+
 #if STRCMP
   printf("MINE %d - %d LIBC\n", my_strcmp("aaaaaaaaaa", "aaaaaaaaaa"), strcmp("aaaaaaaaaa", "aaaaaaaaaa"));
   printf("MINE %d - %d LIBC\n", my_strcmp("aaaaaaaZaaa", "aaaaaaaaaa"), strcmp("aaaaaaaZaaa", "aaaaaaaaaa"));
@@ -43,6 +78,7 @@ int		main(int ac, char **av)
   printf("str           -> %p\n", str);
   printf("strchr(str)    = %p, offset = %li\n", strchr(str, 'o'), PTR_DEL(strchr(str, 'o'), str));
   printf("my_strchr(str) = %p, offset = %li\n", my_strchr(str, 'o'), PTR_DEL(my_strchr(str, 'o'), str));
+  printf("my_strchr(str) = %p, offset = %li\n", my_strchr(str, '?'), PTR_DEL(my_strchr(str, '?'), str));
 #endif
 #if STRLEN
   printf("-----------[ STRLEN ]-----------\n");
