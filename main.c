@@ -15,7 +15,7 @@ char *my_strcpy(char *dest, const char *src);
 int my_strcmp(const char *s1, const char *s2);
 void *my_memmove(void *dest, const void *src, size_t n);
 typedef struct {
-  char s[42];
+  char s[43];
   int i;
   float tutu;
   void *p;
@@ -36,9 +36,18 @@ int		main(int ac, char **av)
   memmove_test.tutu = 1234.4321;
   memmove_test.p = NULL;
   memmove_test.coudra_t = 0xFACEB00C;
+  bzero(&test, sizeof(test));
   printf("[%s]\n", memmove_test.s);
-  my_memmove(&test, &memmove_test, sizeof(memmove_test));
+  printf("[       %s]\n", 7+ memmove_test.s);
+  printf("ret = %p\n", my_memmove(&test, &memmove_test, sizeof(memmove_test)));
   printf("[%s]\n", memmove_test.s);
+  printf("[ %s]\n", 1+ memmove_test.s);
+  printf("[  %s]\n", 2+ memmove_test.s);
+  printf("[   %s]\n", 3+ memmove_test.s);
+  printf("[    %s]\n", 4+ memmove_test.s);
+  printf("[     %s]\n", 5+ memmove_test.s);
+  printf("[      %s]\n", 6+ memmove_test.s);
+  printf("[       %s]\n", 7+ memmove_test.s);
   printf("memmove : %i %i %i %i %i\n", !strcmp(memmove_test.s, test.s),
       memmove_test.i == test.i,
       memmove_test.tutu == test.tutu,

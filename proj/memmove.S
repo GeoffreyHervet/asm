@@ -6,28 +6,26 @@ section .text
 
 ; void *memmove(void *dest, const void *src, size_t n)
 ; rax             rdi          rsi             rdx
-
 my_memmove:
   push rbp		; prologue
   mov rbp, rsp
   push r8
-  push r9
 
   xor r8, r8
 
 _while:
-  cmp rdx, r8
-  jle _enwhile
+  cmp r8, rdx
+  jge _endwhile
 
-  mov r9, [rsi+r8]
-  mov [rdi+r8], r9
-
-  add r8, 4
+  mov al, [rsi+r8]
+  mov [rdi+r8], al
+  inc r8
   jmp _while
 
-_enwhile:
+_endwhile:
   mov rax, rdi
-  pop r9
+
   pop r8
+  mov rsp,rbp		; epilogue
   pop rbp
   ret
